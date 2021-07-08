@@ -45,6 +45,8 @@ if __name__ == "__main__":
 
     parser.add_argument('--viz_on', default=True, type=str2bool, help='enable visdom visualization')
     parser.add_argument('--viz_port', default=8097, type=int, help='visdom port number')
+    parser.add_argument('--viz_offline', default=True, type=str2bool, help='use visdom offline')
+    parser.add_argument('--viz_dir', default='visdom', type=str, help='visdom log directory')
     parser.add_argument('--viz_ll_iter', default=1000, type=int, help='visdom line data logging iter')
     parser.add_argument('--viz_la_iter', default=5000, type=int, help='visdom line data applying iter')
     parser.add_argument('--viz_ra_iter', default=10000, type=int, help='visdom recon image applying iter')

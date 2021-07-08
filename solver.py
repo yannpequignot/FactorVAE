@@ -65,8 +65,11 @@ class Solver(object):
         self.line_gather = DataGather('iter', 'soft_D_z', 'soft_D_z_pperm', 'recon', 'kld', 'acc')
         self.image_gather = DataGather('true', 'recon')
         if self.viz_on:
-            self.viz_port = args.viz_port
-            self.viz = visdom.Visdom(port=self.viz_port)
+            mkdirs(args.viz_dir)
+            viz_filename = os.path.join(args.viz_dir, self.name + '.log')
+            self.viz = visdom.Visdom(port=args.viz_port,
+                                     offline=args.viz_offline,
+                                     log_to_filename=viz_filename)
             self.viz_ll_iter = args.viz_ll_iter
             self.viz_la_iter = args.viz_la_iter
             self.viz_ra_iter = args.viz_ra_iter
@@ -109,14 +112,20 @@ class Solver(object):
                 vae_loss = vae_recon_loss + vae_kld + self.gamma*vae_tc_loss
 
                 self.optim_VAE.zero_grad()
-                vae_loss.backward(retain_graph=True)
+                vae_loss.backward()
                 self.optim_VAE.step()
 
+
                 x_true2 = x_true2.to(self.device)
-                z_prime = self.VAE(x_true2, no_dec=True)
-                z_pperm = permute_dims(z_prime).detach()
+
+                #new_D_z = self.D(self.VAE(x_true1, no_dec=True))
+                new_D_z = self.D(z.detach())
+
+                with torch.no_grad():
+                    z_prime = self.VAE(x_true2, no_dec=True)
+                    z_pperm = permute_dims(z_prime)
                 D_z_pperm = self.D(z_pperm)
-                D_tc_loss = 0.5*(F.cross_entropy(D_z, zeros) + F.cross_entropy(D_z_pperm, ones))
+                D_tc_loss = 0.5*(F.cross_entropy(new_D_z, zeros) + F.cross_entropy(D_z_pperm, ones))
 
                 self.optim_D.zero_grad()
                 D_tc_loss.backward()
@@ -315,7 +324,7 @@ class Solver(object):
                 z = z_ori.clone()
                 for val in interpolation:
                     z[:, row] = val
-                    sample = F.sigmoid(decoder(z)).data
+                    sample = torch.sigmoid(decoder(z)).data
                     samples.append(sample)
                     gifs.append(sample)
             samples = torch.cat(samples, dim=0).cpu()
@@ -330,8 +339,8 @@ class Solver(object):
             gifs = gifs.view(len(Z), self.z_dim, len(interpolation), self.nc, 64, 64).transpose(1, 2)
             for i, key in enumerate(Z.keys()):
                 for j, val in enumerate(interpolation):
-                    save_image(tensor=gifs[i][j].cpu(),
-                               filename=os.path.join(output_dir, '{}_{}.jpg'.format(key, j)),
+                    save_image(gifs[i][j].cpu(),
+                               os.path.join(output_dir, '{}_{}.jpg'.format(key, j)),
                                nrow=self.z_dim, pad_value=1)
 
                 grid2gif(str(os.path.join(output_dir, key+'*.jpg')),
