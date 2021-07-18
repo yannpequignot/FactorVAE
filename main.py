@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from solver import Solver
+from solverNNE import SolverNNE
 from utils import str2bool
 
 torch.backends.cudnn.enabled = True
@@ -17,7 +18,10 @@ np.random.seed(init_seed)
 
 
 def main(args):
-    net = Solver(args)
+    if args.nne:
+        net = SolverNNE(args)    
+    else:
+        net = Solver(args)
     net.train()
 
 
@@ -28,6 +32,7 @@ if __name__ == "__main__":
     parser.add_argument('--cuda', default=True, type=str2bool, help='enable cuda')
     parser.add_argument('--max_iter', default=1e6, type=float, help='maximum training iteration')
     parser.add_argument('--batch_size', default=64, type=int, help='batch size')
+    parser.add_argument('--nne', default=False, type=str2bool, help='use nne estimation for disentanglement term')
 
     parser.add_argument('--z_dim', default=10, type=int, help='dimension of the representation z')
     parser.add_argument('--gamma', default=6.4, type=float, help='gamma hyperparameter')
@@ -62,5 +67,5 @@ if __name__ == "__main__":
     parser.add_argument('--output_save', default=True, type=str2bool, help='whether to save traverse results')
 
     args = parser.parse_args()
-
+    print(args)
     main(args)
